@@ -1,0 +1,13 @@
+Model: sarvam-30b with reasoning_effort='low'
+ Status: 200
+ Time taken: 1.53 seconds
+  content field: नमस्ते! सरकारी योजनाओं के बारे में:
+
+- PM किसान सम्मान निधि: किसानों को ₹6000/साल
+- उज्ज्वला योजना: एलपीजी कनेक्शन
+- PM आवास योजना: गरीब आवास
+- राष्ट्रीय स्वास्थ्य योजना: स्वास्थ्य सेवाएं
+- शिक्षा योजना: सभी के लिए शिक्षा
+
+कौन सी योजना के बारे में अधिक जानना चाहते हैं?
+  reasoning_content field: The user is greeting me in Hindi and asking about schemes (योजनाओं). They want to know about governm...

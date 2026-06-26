@@ -1,0 +1,19 @@
+Latest Conversation ID: 7623b56c-fabe-4cc4-92a7-0794303f24e6
+Language: hindi
+Context: {'age': 30}
+
+Messages in this conversation:
+ 1. [user] (len 5): hello
+ 2. [assistant] (len 140): नमस्ते! मुझे आपकी मदद करने में खुशी होगी। कृपया मुझे बताएं कि आप किस राज्य में रहते हैं? यह जानकर मैं आपको सही योजनाओं की जानकारी दे पाऊँगा।
+ 3. [user] (len 17): I am 30 years old
+ 4. [assistant] (len 130): आपकी उम्र 30 साल है, यह जानकर अच्छा लगा। अब कृपया मुझे बताएं कि आप किस राज्य में रहते हैं? इससे मुझे आपकी मदद करने में आसानी होगी।
+ 5. [user] (len 48): नहीं मेरा एक्चुअली उम्र 30 साल नहीं है 35 साल है
+ 6. [assistant] (len 127): आपकी उम्र 35 साल है, यह जानकर अच्छा लगा। कृपया मुझे बताएं कि आप किस राज्य में रहते हैं? इससे मुझे आपकी मदद करने में आसानी होगी।
+ 7. [user] (len 37): Achcha Koi Yojana aapane Nahin bataya
+ 8. [assistant] (len 131): I understand. To help you better, could you please share the state where you live? This will help me find relevant schemes for you.
+
+Attempting to call Sarvam Chat Completions API directly...
+Payload messages count: 9
+API Response Status Code: 200
+Success!
+Reply: <think>

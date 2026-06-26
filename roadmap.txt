@@ -1,0 +1,465 @@
+================================================================================
+          JAN SAHAYAK — INDUSTRY-STANDARD IMPROVEMENT ROADMAP
+================================================================================
+  Created: 2026-06-07
+  Status Legend:  [ ] Todo  |  [~] In Progress  |  [x] Done  |  [-] Skipped
+================================================================================
+
+
+================================================================================
+  PHASE 1 — SECURITY & HARDENING (Week 1)
+================================================================================
+
+  1.1  Authentication & Authorization
+  ------------------------------------
+  [x] Install PyJWT:  pip install PyJWT passlib[bcrypt], for local we must implement this but cloud deployment we will implement firebase authentication.
+  [x] Create src/jan_sahayak/services/auth.py
+      - create_access_token(user_id) → JWT token
+      - verify_token(token) → user payload
+      - get_current_user() → FastAPI Depends() for route protection
+      Local:    jwt.decode(token, MY_SECRET)     → user_id
+      Cloud:    firebase_admin.verify_id_token() → user_id
+          ↓
+Same result — both return a user identity
+
+  [x] Create src/jan_sahayak/routers/auth.py
+      - POST /api/auth/register  → phone + name → creates user, returns JWT
+      - POST /api/auth/login     → phone + OTP (mock for now) → returns JWT
+      - GET  /api/auth/me        → returns current user profile
+  [x] Add JWT_SECRET_KEY and JWT_EXPIRY_MINUTES to config.py and .env.example
+  [x] Protect these routes with Depends(get_current_user):
+      - POST /api/chat/
+      - POST /api/schemes/digitize
+      - POST /api/voice/transcribe
+      - GET  /api/schemes/{id}/explain
+      - POST /api/schemes/{id}/guide
+  [x] Link conversation.user_id to the authenticated user automatically
+  [x] Update frontend to store JWT in localStorage and send in Authorization header
+  [x] Add login/register UI screen (or modal) in frontend
+
+  1.2  Rate Limiting
+  -------------------
+  [x] Install slowapi:  pip install slowapi
+  [x] Add rate limiter middleware in main.py:
+      - /api/chat/           → 20 requests/min per IP
+      - /api/schemes/digitize → 10 requests/min per IP
+      - /api/voice/          → 15 requests/min per IP
+  [x] Return 429 Too Many Requests with a user-friendly error message
+  [x] Add RATE_LIMIT_ENABLED=true to config.py
+
+  1.3  Input Sanitization & Validation
+  --------------------------------------
+  [x] Add max_length=2000 to ChatRequest.message in schemas/api.py
+  [x] Add max file size check (5MB) in /api/schemes/digitize before processing
+  [x] Add MIME type validation (only allow: application/pdf, image/png, image/jpeg)
+  [x] Sanitize user_message in conversation_manager.py:
+      - Strip control characters (\x00-\x1f except \n)
+      - Limit to 2000 chars
+  [x] Validate profile_overrides keys against allowed set:
+      {name, state, district, annual_income, occupation, category,
+       family_size, age, gender}
+  [x] Add Content-Security-Policy headers via middleware
+
+
+================================================================================
+  PHASE 2 — DATABASE & INFRASTRUCTURE (Week 2)
+================================================================================
+
+  2.1  PostgreSQL Migration
+  --------------------------
+  [ ] Install asyncpg:  pip install asyncpg
+  [ ] Update pyproject.toml dependencies: add "asyncpg>=0.29.0"
+  [ ] Update .env.example with PostgreSQL template:
+      DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/jan_sahayak
+  [ ] Update database.py:
+      - Remove check_same_thread SQLite-specific arg
+      - Add connection pool settings: pool_size=10, max_overflow=20
+  [ ] Test locally with Docker PostgreSQL:
+      docker run -d -p 5432:5432 -e POSTGRES_DB=jan_sahayak \
+        -e POSTGRES_USER=jan -e POSTGRES_PASSWORD=sahayak postgres:16
+
+  2.2  Alembic Database Migrations
+  ----------------------------------
+  [ ] Initialize Alembic:  alembic init alembic
+  [ ] Edit alembic/env.py for async SQLAlchemy support
+  [ ] Import all models in alembic/env.py:
+      from jan_sahayak.models.user import User
+      from jan_sahayak.models.scheme import Scheme, SchemeMatch
+      from jan_sahayak.models.conversation import Conversation, Message
+  [ ] Generate initial migration:
+      alembic revision --autogenerate -m "initial schema"
+  [ ] Run migration:  alembic upgrade head
+  [ ] Remove Base.metadata.create_all() from database.py init_db()
+  [ ] Add alembic upgrade head to startup (or run separately)
+  [ ] Document migration workflow in README
+
+  2.3  Configuration Cleanup
+  ---------------------------
+  [ ] Remove hardcoded overrides from get_settings() in config.py
+  [ ] Let Pydantic BaseSettings handle .env values naturally
+  [ ] Add APP_ENV validation: must be one of development/staging/production
+  [ ] Set echo=False for SQL in production mode
+  [ ] Add SARVAM_MODEL_NAME=sarvam-30b to config (not hardcoded in sarvam.py)
+  [ ] Add MAX_CHAT_HISTORY=8 to config (not hardcoded in conversation_manager.py)
+
+
+================================================================================
+  PHASE 3 — FRONTEND REFACTORING (Week 3)
+================================================================================
+
+  3.1  Component Decomposition (page.tsx → 10+ files)
+  -----------------------------------------------------
+  [ ] Create frontend/src/types/index.ts
+      - Export: Scheme, Message, ProfileState interfaces
+  [ ] Create frontend/src/hooks/useChat.ts
+      - Move: messages, textInput, isLoading, conversationId state
+      - Move: handleSendMessage, voice recording logic
+      - Return: { messages, sendMessage, textInput, setTextInput, ... }
+  [ ] Create frontend/src/hooks/useProfile.ts
+      - Move: profile, digitizedDoc, uploadStatus, isDigitizing state
+      - Move: handleDocumentUpload, handleProfileEdit logic
+      - Return: { profile, updateField, uploadDocument, ... }
+  [ ] Create frontend/src/hooks/useSchemes.ts
+      - Move: matchedSchemes, explain/guide state
+      - Move: handleExplainClick, handleGuideClick logic
+  [ ] Create frontend/src/components/ProfileSidebar.tsx
+      - Profile variables display + inline editing
+      - Digitization Center (file upload zone)
+  [ ] Create frontend/src/components/ChatPanel.tsx
+      - Message thread + voice input + text input form
+  [ ] Create frontend/src/components/SchemeMatchesPanel.tsx
+      - Scheme cards with Explain/Guide buttons
+  [ ] Create frontend/src/components/ExplainModal.tsx
+      - Scheme explanation overlay
+  [ ] Create frontend/src/components/GuideModal.tsx
+      - Application guide overlay
+  [ ] Create frontend/src/components/Header.tsx
+      - App title bar + status indicator
+  [ ] Refactor page.tsx to compose these components (<300 lines)
+
+  3.2  Frontend State Management
+  -------------------------------
+  [ ] Consider React Context or Zustand for shared state
+  [ ] Create ProfileContext to share profile across components
+  [ ] Create ConversationContext for chat state
+
+
+================================================================================
+  PHASE 4 — DEVOPS & CI/CD (Week 4)
+================================================================================
+
+  4.1  Dockerization
+  -------------------
+  [ ] Create Dockerfile (backend):
+      FROM python:3.11-slim
+      COPY . /app
+      RUN pip install -e .
+      CMD ["uvicorn", "jan_sahayak.main:app", "--host", "0.0.0.0", "--port", "8000"]
+  [ ] Create frontend/Dockerfile:
+      FROM node:20-alpine
+      COPY . /app
+      RUN npm ci && npm run build
+      CMD ["npm", "start"]
+  [ ] Create docker-compose.yml:
+      services:
+        backend:   (port 8000)
+        frontend:  (port 3000)
+        postgres:  (port 5432)
+        redis:     (port 6379, for caching/rate-limiting)
+  [ ] Create .dockerignore:
+      .venv, node_modules, __pycache__, .env, *.db, .git
+  [ ] Test full stack: docker compose up --build
+  [ ] Add health check endpoints in docker-compose
+
+  4.2  CI/CD Pipeline (GitHub Actions)
+  --------------------------------------
+  [ ] Create .github/workflows/ci.yml:
+      on: [push, pull_request]
+      jobs:
+        lint:
+          - ruff check src/
+          - ruff format --check src/
+        test:
+          - pip install -e ".[dev]"
+          - pytest --cov=jan_sahayak --cov-report=xml
+          - Upload coverage report
+        build:
+          - docker build -t jan-sahayak-backend .
+          - docker build -t jan-sahayak-frontend frontend/
+  [ ] Add branch protection rules on main
+  [ ] Add pytest-cov to dev dependencies in pyproject.toml
+  [ ] Create .github/workflows/deploy.yml (staging deploy on merge to main)
+
+
+================================================================================
+  PHASE 5 — TESTING & QUALITY (Week 4-5)
+================================================================================
+
+  5.1  Backend Unit Tests (target: 80%+ coverage)
+  -------------------------------------------------
+  [ ] tests/test_profile_extractor.py
+      - test_extract_regex_age_hindi()
+      - test_extract_regex_age_english()
+      - test_extract_regex_income_lakh()
+      - test_extract_regex_income_thousand()
+      - test_extract_regex_state_hindi()
+      - test_extract_regex_state_english()
+      - test_extract_regex_category()
+      - test_extract_regex_gender()
+      - test_extract_regex_occupation()
+      - test_is_demographic_related_true_cases()
+      - test_is_demographic_related_false_cases()
+      - test_short_message_skipped()
+  [ ] tests/test_scheme_engine_scoring.py
+      - test_income_disqualification()
+      - test_category_disqualification()
+      - test_state_disqualification()
+      - test_occupation_disqualification()
+      - test_gender_disqualification()
+      - test_age_too_young()
+      - test_age_too_old()
+      - test_perfect_match_score()
+      - test_no_criteria_scheme()
+  [ ] tests/test_sarvam_service.py
+      - test_chat_retry_on_timeout()
+      - test_chat_think_tag_stripping()
+      - test_chat_think_tag_content_extraction()
+      - test_get_language_code()
+      - test_tts_returns_base64()
+      - test_stt_returns_transcript()
+  [ ] tests/test_chat_router.py
+      - test_detect_language_hindi()
+      - test_detect_language_english()
+      - test_detect_language_mixed()
+      - test_chat_endpoint_returns_schemes()
+      - test_chat_endpoint_voice_generates_audio()
+  [ ] tests/test_schemes_router.py
+      - test_seed_schemes()
+      - test_list_schemes_pagination()
+      - test_get_scheme_by_id()
+      - test_get_scheme_not_found()
+      - test_digitize_endpoint_mock()
+      - test_explain_endpoint()
+      - test_guide_endpoint()
+
+  5.2  Frontend Tests (Jest + React Testing Library)
+  ---------------------------------------------------
+  [ ] Install: npm install --save-dev @testing-library/react @testing-library/jest-dom jest
+  [ ] frontend/__tests__/ProfileSidebar.test.tsx
+  [ ] frontend/__tests__/ChatPanel.test.tsx
+  [ ] frontend/__tests__/SchemeMatchesPanel.test.tsx
+  [ ] frontend/__tests__/useChat.test.ts
+  [ ] frontend/__tests__/useProfile.test.ts
+
+  5.3  End-to-End Tests
+  ----------------------
+  [ ] Install Playwright or Cypress
+  [ ] Test: full chat flow → profile extraction → scheme matching
+  [ ] Test: document upload → profile population
+  [ ] Test: scheme explain/guide modal interaction
+
+
+================================================================================
+  PHASE 6 — PERFORMANCE & CACHING (Week 5)
+================================================================================
+
+  6.1  API Response Caching
+  --------------------------
+  [ ] Install redis:  pip install redis
+  [ ] Create src/jan_sahayak/services/cache.py
+      - RedisCache class with get/set/delete methods
+      - Fallback to in-memory LRU cache if Redis unavailable
+  [ ] Cache explain_scheme() responses:
+      key: "explain:{scheme_id}:{language}", TTL: 1 hour
+  [ ] Cache generate_application_guide() responses:
+      key: "guide:{scheme_id}:{profile_hash}:{language}", TTL: 30 min
+  [ ] Cache find_matching_schemes() responses:
+      key: "match:{profile_hash}", TTL: 5 min
+  [ ] Add cache-control headers to GET endpoints
+  [ ] Add REDIS_URL to config.py and .env.example
+
+  6.2  Frontend Performance
+  --------------------------
+  [ ] Add React.memo() to heavy components (SchemeCard, MessageBubble)
+  [ ] Lazy-load modals with React.lazy() + Suspense
+  [ ] Debounce profile edit saves (300ms)
+  [ ] Add loading skeletons instead of spinners
+
+
+================================================================================
+  PHASE 7 — OBSERVABILITY & MONITORING (Week 5-6)
+================================================================================
+
+  7.1  Structured Logging & Request Tracing
+  -------------------------------------------
+  [ ] Install:  pip install python-json-logger
+  [ ] Add RequestID middleware in main.py:
+      - Generate UUID per request
+      - Attach to all log records
+      - Return in X-Request-ID response header
+  [ ] Switch to JSON log format in production (keep human-readable in dev)
+  [ ] Add response time logging middleware
+  [ ] Log Sarvam API latencies per call type (chat, tts, stt, digitize)
+
+  7.2  Health Check Enhancement
+  ------------------------------
+  [ ] Expand GET /api/health to include:
+      - Database connectivity status
+      - Sarvam API key validity (cached check)
+      - Redis connectivity status
+      - Uptime + version info
+  [ ] Add GET /api/health/ready (Kubernetes readiness probe)
+  [ ] Add GET /api/health/live  (Kubernetes liveness probe)
+
+  7.3  LangSmith Observability
+  -----------------------------
+  [ ] Verify all @traceable decorators are on key functions
+  [ ] Add custom metadata to traces (user_id, conversation_id, language)
+  [ ] Set up LangSmith evaluation datasets for scheme matching quality
+  [ ] Create automated evaluation runs for regression testing
+
+
+================================================================================
+  PHASE 8 — UX & FEATURE ENHANCEMENTS (Week 6+)
+================================================================================
+
+  8.1  Scheme Ineligibility Explanations
+  ----------------------------------------
+  [ ] Update SchemeEngine.find_matching_schemes() to also return:
+      ineligible_schemes: [{scheme, reason: "Income ₹5L exceeds max ₹2.5L"}]
+  [ ] Add to ChatResponse schema: ineligible_schemes field
+  [ ] Frontend: collapsible "Not Eligible" section below matched schemes
+  [ ] Show clear, human-readable disqualification reasons
+
+  8.2  Conversation History & Resume
+  ------------------------------------
+  [ ] Add GET /api/conversations/ → list user's past conversations
+  [ ] Add GET /api/conversations/{id} → load full conversation with messages
+  [ ] Frontend: conversation list sidebar or dropdown
+  [ ] Auto-generate conversation titles using LLM
+
+  8.3  Error Handling UX
+  -----------------------
+  [ ] Create frontend toast notification system (or use react-hot-toast)
+  [ ] Map backend error codes to user-friendly messages:
+      SARVAM_API_ERROR   → "AI service temporarily busy. Retrying..."
+      SCHEME_NOT_FOUND   → "This scheme is no longer available."
+      RATE_LIMIT         → "Too many requests. Please wait a moment."
+  [ ] Add automatic retry (with exponential backoff) for transient failures
+  [ ] Add offline detection banner
+
+  8.4  Externalize Scheme Data
+  -----------------------------
+  [ ] Create data/schemes.json with all scheme definitions
+  [ ] Update _get_sample_schemes() to load from JSON file
+  [ ] Add data/README.md documenting the scheme JSON schema
+  [ ] Add last_verified_at and data_source fields to scheme records
+  [ ] Create scripts/update_schemes.py CLI tool for adding new schemes
+
+
+================================================================================
+  PHASE 9 — PRODUCTION READINESS (Week 7+)
+================================================================================
+
+  9.1  Documentation
+  -------------------
+  [ ] Create comprehensive README.md:
+      - Project overview & architecture diagram
+      - Setup instructions (local + Docker)
+      - API documentation links (/docs)
+      - Environment variables reference
+      - Contributing guidelines
+  [ ] Add API changelog (CHANGELOG.md)
+  [ ] Add LICENSE file
+  [ ] Document Sarvam AI API usage and costs
+
+  9.2  Accessibility (a11y)
+  --------------------------
+  [ ] Add ARIA labels to all interactive elements
+  [ ] Ensure keyboard navigation works for all features
+  [ ] Add screen reader support for profile sidebar
+  [ ] Test with NVDA/VoiceOver
+
+  9.3  PWA & Mobile
+  ------------------
+  [ ] Add PWA manifest (manifest.json)
+  [ ] Add service worker for offline scheme data caching
+  [ ] Optimize responsive layout for mobile screens
+  [ ] Compress TTS audio responses for low-bandwidth
+
+  9.4  Analytics & Admin
+  -----------------------
+  [ ] Track: most searched schemes, user demographics, completion rates
+  [ ] Create simple admin dashboard (scheme CRUD, user stats)
+  [ ] Add Sarvam API usage monitoring (cost tracking)
+
+
+================================================================================
+  QUICK REFERENCE — FILE CHANGES BY PHASE
+================================================================================
+
+  Phase 1:
+    NEW:  src/jan_sahayak/services/auth.py
+    NEW:  src/jan_sahayak/routers/auth.py
+    EDIT: main.py, config.py, schemas/api.py, .env.example
+    EDIT: routers/chat.py, routers/schemes.py, routers/voice.py
+    EDIT: frontend/src/app/page.tsx (add auth headers)
+
+  Phase 2:
+    EDIT: database.py, config.py, pyproject.toml, .env.example
+    NEW:  alembic/ directory (init + first migration)
+
+  Phase 3:
+    NEW:  frontend/src/types/index.ts
+    NEW:  frontend/src/hooks/useChat.ts
+    NEW:  frontend/src/hooks/useProfile.ts
+    NEW:  frontend/src/hooks/useSchemes.ts
+    NEW:  frontend/src/components/ProfileSidebar.tsx
+    NEW:  frontend/src/components/ChatPanel.tsx
+    NEW:  frontend/src/components/SchemeMatchesPanel.tsx
+    NEW:  frontend/src/components/ExplainModal.tsx
+    NEW:  frontend/src/components/GuideModal.tsx
+    NEW:  frontend/src/components/Header.tsx
+    EDIT: frontend/src/app/page.tsx (refactor to compose components)
+
+  Phase 4:
+    NEW:  Dockerfile
+    NEW:  frontend/Dockerfile
+    NEW:  docker-compose.yml
+    NEW:  .dockerignore
+    NEW:  .github/workflows/ci.yml
+    EDIT: pyproject.toml (add pytest-cov)
+
+  Phase 5:
+    NEW:  tests/test_profile_extractor.py
+    NEW:  tests/test_scheme_engine_scoring.py
+    NEW:  tests/test_sarvam_service.py
+    NEW:  tests/test_chat_router.py
+    NEW:  tests/test_schemes_router.py
+    NEW:  frontend/__tests__/*.test.tsx
+
+  Phase 6:
+    NEW:  src/jan_sahayak/services/cache.py
+    EDIT: services/scheme_engine.py (add caching)
+    EDIT: config.py (add REDIS_URL)
+
+  Phase 7:
+    EDIT: logger.py, main.py (structured logging + request ID)
+    EDIT: routers/health.py (enhanced health checks)
+
+  Phase 8:
+    EDIT: services/scheme_engine.py (ineligibility reasons)
+    EDIT: schemas/api.py (new response fields)
+    NEW:  data/schemes.json
+    EDIT: routers/schemes.py (load from JSON)
+
+  Phase 9:
+    NEW:  README.md (comprehensive)
+    NEW:  CHANGELOG.md
+    NEW:  LICENSE
+    NEW:  frontend/public/manifest.json
+
+
+================================================================================
+  END OF ROADMAP
+================================================================================

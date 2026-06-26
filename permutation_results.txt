@@ -1,0 +1,46 @@
+Permutation #1: {'reasoning_effort': None}
+ Status: 200
+ Time taken: 1.81 seconds
+  content: None...
+  reasoning_content: 1.  **Analyze the User's Request:**
+    *   This Hindi query asks for information about plans (योजना...
+--------------------------------------------------
+Permutation #2: {'reasoning_effort': 'none'}
+ Status: 400
+ Time taken: 0.51 seconds
+  Error: {"error":{"message":"body.reasoning_effort : Input should be 'low', 'medium' or 'high'","code":"invalid_request_error","request_id":"20260530_1b50097e-3874-42dc-9942-4f0a00b5a41e"}}
+--------------------------------------------------
+Permutation #3: {'reasoning_effort': 'None'}
+ Status: 400
+ Time taken: 0.44 seconds
+  Error: {"error":{"message":"body.reasoning_effort : Input should be 'low', 'medium' or 'high'","code":"invalid_request_error","request_id":"20260530_86946543-5920-45c9-8ae1-da7ac89cf083"}}
+--------------------------------------------------
+Permutation #4: {'reasoning_effort': 'low'}
+ Status: 200
+ Time taken: 1.62 seconds
+  content: None...
+  reasoning_content: 1.  **Analyze the User's Request:**
+    *   **User says:** "नमस्ते, मुझे योजनाओं के बारे में बताएं।"...
+--------------------------------------------------
+Permutation #5: {'reasoning': False}
+ Status: 200
+ Time taken: 2.57 seconds
+  content: None...
+  reasoning_content: 1.  **Analyze the User's Request:**
+    *   **User's input:** "hello, tell me about plans."
+    *   ...
+--------------------------------------------------
+Permutation #6: {'think': False}
+ Status: 200
+ Time taken: 3.16 seconds
+  content: None...
+  reasoning_content: 1.  **Analyze the User's Request:**
+    *   This Hindi query asks for information about plans (योजना...
+--------------------------------------------------
+Permutation #7: {}
+ Status: 200
+ Time taken: 2.99 seconds
+  content: None...
+  reasoning_content: 1.  **Analyze the User's Request:**
+    *   This Hindi query asks for information regarding plans (य...
+--------------------------------------------------

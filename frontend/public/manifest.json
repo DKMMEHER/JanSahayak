@@ -1,0 +1,17 @@
+{
+  "name": "Jan Sahayak — AI Welfare Discovery",
+  "short_name": "Jan Sahayak",
+  "description": "Discover eligible Indian government welfare schemes through regional language chat and voice.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0e1a",
+  "theme_color": "#0a0e1a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}

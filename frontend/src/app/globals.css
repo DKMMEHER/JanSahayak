@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0a0e1a;
+  --foreground: #f8fafc;
+  --card-bg: rgba(15, 23, 42, 0.65);
+  --card-border: rgba(99, 102, 241, 0.15);
+  --primary-accent: #ff8a3d; /* Vibrant Saffron */
+  --secondary-accent: #3b82f6; /* Trust Blue */
+  --glow-accent: #14b8a6; /* Modern Teal */
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  overflow-x: hidden;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.12) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(20, 184, 166, 0.1) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(249, 115, 22, 0.05) 0px, transparent 50%);
+  background-attachment: fixed;
+}
+
+/* Glassmorphism Classes */
+.glass {
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glass-premium {
+  background: rgba(30, 41, 59, 0.7);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+/* Pulsing voice recording ring */
+@keyframes ring-pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 20px rgba(249, 115, 22, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(249, 115, 22, 0);
+  }
+}
+
+.pulse-ring {
+  animation: ring-pulse 2s infinite;
+}
+
+/* Simple voice waveform bars */
+@keyframes wave-height {
+  0%, 100% {
+    height: 8px;
+  }
+  50% {
+    height: 32px;
+  }
+}
+
+.wave-bar {
+  animation: wave-height 1.2s ease-in-out infinite;
+}
+.wave-bar:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.wave-bar:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.wave-bar:nth-child(4) {
+  animation-delay: 0.45s;
+}
+.wave-bar:nth-child(5) {
+  animation-delay: 0.6s;
+}
+
+/* Glowing text helper */
+.glow-text {
+  text-shadow: 0 0 10px rgba(99, 102, 241, 0.3), 0 0 20px rgba(20, 184, 166, 0.2);
+}
