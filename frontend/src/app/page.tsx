@@ -157,14 +157,25 @@ export default function Dashboard() {
     }
   }, []);
 
-  // Authorized fetch helper
+  // Authorized fetch helper — auto-handles expired tokens (401)
   const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
     const storedToken = token || localStorage.getItem("js_token");
     const headers = {
       ...(options.headers || {}),
       ...(storedToken ? { "Authorization": `Bearer ${storedToken}` } : {}),
     };
-    return fetch(url, { ...options, headers });
+    const res = await fetch(url, { ...options, headers });
+
+    // If the token is expired/invalid, clear it and prompt re-login
+    if (res.status === 401) {
+      setToken(null);
+      setUser(null);
+      localStorage.removeItem("js_token");
+      localStorage.removeItem("js_user");
+      setShowAuthModal(true);
+    }
+
+    return res;
   };
 
   // Handle Register/Login submit
@@ -604,7 +615,11 @@ export default function Dashboard() {
         body: formData,
       });
 
-      if (!res.ok) throw new Error("Failed to process document");
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        const detail = errBody.detail || errBody.error || `Server error (${res.status})`;
+        throw new Error(detail);
+      }
 
       const data = await res.json();
 
@@ -629,9 +644,9 @@ export default function Dashboard() {
         console.log("🔄 Updated profile:", updated);
         return updated;
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Upload error:", err);
-      setUploadStatus("Error processing document. Try another file.");
+      setUploadStatus(err?.message || "Error processing document. Try another file.");
     } finally {
       setIsDigitizing(false);
     }

@@ -60,7 +60,17 @@ async def digitize_document(
         raw_result = await sarvam_service.digitize_document(file_bytes, file_name=file.filename or "document")
     except Exception as e:
         logger.error(f"Document digitization failed: {e}", exc_info=True)
-        return {"extracted_data": {}, "raw": {}, "error": str(e)}
+        # Extract a clean error message — Sarvam SDK exceptions often embed full HTTP headers
+        error_msg = str(e)
+        try:
+            import re as _re
+            # Try to find a 'message' field in the exception string (Sarvam uses Python dict repr)
+            msg_match = _re.search(r"'message':\s*'([^']+)'", error_msg)
+            if msg_match:
+                error_msg = msg_match.group(1)
+        except Exception:
+            pass
+        return {"extracted_data": {}, "raw": {}, "error": error_msg}
 
     # Use the LLM directly for document extraction — NO regex (regex matches false positives
     # on document text like zip codes being treated as income, or abbreviations as categories)
