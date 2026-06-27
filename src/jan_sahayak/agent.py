@@ -133,6 +133,20 @@ async def get_application_guide(scheme_name: str, state: str = "") -> str:
         return guide
 
 
+@function_tool
+async def search_web(query: str) -> str:
+    """
+    Search the web for real-time information, latest updates, news, or state-specific details.
+    
+    Args:
+        query: The search query to look up on the web.
+    """
+    from jan_sahayak.services.web_search import web_search_service
+    logger.info(f"Tool called: search_web with query='{query}'")
+    results = await web_search_service.search_formatted(query, limit=3)
+    return results
+
+
 # =============================================================================
 # LiveKit Entrypoint
 # =============================================================================
@@ -159,12 +173,13 @@ async def entrypoint(ctx: JobContext):
             "When you have enough information, use the 'search_schemes' tool to find eligible schemes. "
             "If they want details about a scheme, use the 'explain_scheme' tool. "
             "If they ask how to apply, use the 'get_application_guide' tool. "
+            "If they ask for latest news, deadlines, website links, or specific local/state subsidy amounts, use the 'search_web' tool. "
             "Always respond in the same language the user uses. Be patient and respectful."
         ),
         stt=stt,
         llm=llm,
         tts=tts,
-        tools=[search_schemes, explain_scheme, get_application_guide],
+        tools=[search_schemes, explain_scheme, get_application_guide, search_web],
     )
 
     # 3. Create AgentSession

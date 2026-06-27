@@ -126,6 +126,19 @@ async def get_application_guide(scheme_name: str, state: str = "", language: str
         return guide
 
 
+@mcp.tool()
+async def search_web(query: str) -> str:
+    """
+    Search the web for real-time information, latest announcements, application URLs, or state-specific scheme details.
+
+    Args:
+        query: The search query string.
+    """
+    from jan_sahayak.services.web_search import web_search_service
+    results = await web_search_service.search_formatted(query, limit=3)
+    return results
+
+
 # =============================================================================
 # Resources (Read-only data endpoints)
 # =============================================================================

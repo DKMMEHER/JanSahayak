@@ -17,6 +17,7 @@ from jan_sahayak.models.user import User
 from jan_sahayak.services.profile_extractor import profile_extractor
 from jan_sahayak.services.sarvam import sarvam_service
 from jan_sahayak.services.scheme_engine import scheme_engine
+from jan_sahayak.services.web_search import web_search_service
 
 
 logger = get_logger(__name__)
@@ -55,6 +56,9 @@ CURRENT CITIZEN PROFILE:
 ELIGIBILITY SCHEME MATCHES:
 {scheme_matches}
 
+REAL-TIME WEB SEARCH CONTEXT (Use this to answer queries about latest updates, state-specific amounts, website links, or news):
+{web_search_results}
+
 MISSING PROFILE INFORMATION TO ASK FOR (ask one at a time naturally in conversation, do not list them all):
 {missing_fields}
 
@@ -63,7 +67,8 @@ INSTRUCTIONS:
 2. If scheme matches are available, explain them simply (what they get, key eligibility, and where to apply).
 3. If profile details are missing, ask for them politely and conversationally. Do not ask for more than one piece of information at a time.
 4. If the user shares any new details, confirm you've noted them and adapt your tone to match their situation.
-5. If they qualify for nothing, express empathy and offer to help search for other resources or verify their details.
+5. Use the REAL-TIME WEB SEARCH CONTEXT to answer questions about specific subsidy amounts, website links, deadlines, or latest cabinet approvals. Always cite/mention the source website name or URL if available.
+6. If they qualify for nothing, express empathy and offer to help search for other resources or verify their details.
 """
 
 
@@ -161,6 +166,13 @@ class ConversationManager:
         # Extract Scheme models from matches
         matched_schemes = [m["scheme"] for m in matched_schemes_data]
 
+        # 4.5. Run real-time web search if needed
+        web_search_results = "No search performed for this query."
+        if self._needs_web_search(user_message):
+            search_query = self._build_search_query(user_message, current_profile)
+            logger.info(f"🔍 Running real-time web search for: '{search_query}'")
+            web_search_results = await web_search_service.search_formatted(search_query)
+
         # 5. Compile system prompt
         profile_summary = self._generate_profile_summary(current_profile)
         scheme_matches = self._generate_schemes_summary(matched_schemes_data, language)
@@ -169,6 +181,7 @@ class ConversationManager:
         system_prompt = BASE_SYSTEM_PROMPT.format(
             profile_summary=profile_summary,
             scheme_matches=scheme_matches,
+            web_search_results=web_search_results,
             missing_fields=missing_fields,
             language_display=LANGUAGE_DISPLAY_NAMES.get(language, language),
         )
@@ -276,6 +289,32 @@ class ConversationManager:
             return "All profile details collected. Focus on guiding user to apply for eligible schemes."
 
         return ", ".join(needed)
+
+    def _needs_web_search(self, message: str) -> bool:
+        message_lower = message.lower()
+        search_triggers = [
+            "subsidy", "subsidies", "amount", "rupees", "rs", "money", "cost", "price",
+            "latest", "news", "update", "current", "new", "date", "deadline", "apply",
+            "website", "link", "portal", "helpline", "phone", "contact", "eligible",
+            "eligibility", "benefit", "benefits", "how much", "what is", "where is",
+            "rules", "cabinet", "approval", "yojana", "scheme", "कितना", "कब", "कैसे",
+            "कहाँ", "कौन", "योजना", "सब्सिडी", "वेबसाइट", "लिंक"
+        ]
+        return any(trigger in message_lower for trigger in search_triggers)
+
+    def _build_search_query(self, message: str, profile: dict) -> str:
+        # Prepend state to make it local if available
+        state = profile.get("state")
+        state_prefix = f"{state} " if state else ""
+        
+        # Strip simple punctuation/stop words
+        import re
+        clean_msg = re.sub(r'[?!.,;:]', '', message)
+        # Limit search query to first 12 words
+        words = clean_msg.split()[:12]
+        query = " ".join(words)
+        
+        return f"{state_prefix}{query}".strip()
 
 
 # Singleton instance
