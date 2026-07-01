@@ -4,9 +4,13 @@ Loads values from .env file automatically.
 """
 
 from functools import lru_cache
+from pathlib import Path
 from typing import List
 
 from pydantic_settings import BaseSettings
+
+# Resolve project root: config.py is at src/jan_sahayak/config.py → 3 levels up
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
 class Settings(BaseSettings):
@@ -20,8 +24,8 @@ class Settings(BaseSettings):
     livekit_api_key: str = ""
     livekit_api_secret: str = ""
 
-    # Database
-    database_url: str = "sqlite+aiosqlite:///./jan_sahayak.db"
+    # Database — use absolute path so the server works regardless of working directory
+    database_url: str = f"sqlite+aiosqlite:///{_PROJECT_ROOT / 'jan_sahayak.db'}"
 
     # LangSmith / LangChain Observability
     langsmith_tracing: bool = True
